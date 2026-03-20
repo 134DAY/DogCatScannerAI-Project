@@ -1,0 +1,612 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>DoggyCatScaner</title>
+  <link href="https://fonts.googleapis.com/css2?family=Kanit:wght@300;400;600;700;800&display=swap" rel="stylesheet">
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --dog:   #ff6b35;
+      --cat:   #a855f7;
+      --both:  #22c55e;
+      --none:  #64748b;
+      --gold:  #ffd200;
+      --orange:#f7971e;
+    }
+
+    /* ── BACKGROUND ── */
+    body {
+      font-family: 'Kanit', 'Noto Sans Thai', sans-serif;
+      background: #070714;
+      min-height: 100vh;
+      color: #fff;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      overflow-x: hidden;
+    }
+
+    /* animated mesh background */
+    body::before {
+      content: '';
+      position: fixed;
+      inset: 0;
+      background:
+        radial-gradient(ellipse 80% 60% at 20% 10%, rgba(168,85,247,.18) 0%, transparent 60%),
+        radial-gradient(ellipse 60% 50% at 80% 80%, rgba(247,151,30,.15) 0%, transparent 55%),
+        radial-gradient(ellipse 70% 40% at 50% 50%, rgba(34,197,94,.06) 0%, transparent 60%);
+      pointer-events: none;
+      z-index: 0;
+    }
+    body > * { position: relative; z-index: 1; }
+
+    /* ── HEADER ── */
+    header {
+      text-align: center;
+      padding: 3rem 1rem 1.5rem;
+      width: 100%;
+    }
+    .logo-row {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 1rem;
+      margin-bottom: .6rem;
+    }
+    .logo-icon {
+      width: 56px; height: 56px;
+      background: linear-gradient(135deg, #f7971e, #ffd200);
+      border-radius: 16px;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 2rem;
+      box-shadow: 0 0 30px rgba(255,210,0,.35);
+    }
+    header h1 {
+      font-size: clamp(2rem, 5vw, 3.2rem);
+      font-weight: 800;
+      background: linear-gradient(90deg, #ffd200, #f7971e, #ffd200);
+      background-size: 200% auto;
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      animation: shimmer 3s linear infinite;
+      letter-spacing: 1px;
+    }
+    @keyframes shimmer { to { background-position: 200% center; } }
+
+    .badge-row {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: .5rem;
+      margin-top: .6rem;
+    }
+    .badge {
+      background: rgba(255,255,255,.07);
+      border: 1px solid rgba(255,255,255,.13);
+      border-radius: 99px;
+      padding: .25rem .85rem;
+      font-size: .78rem;
+      color: #aaa;
+      letter-spacing: .3px;
+    }
+    .badge.highlight { color: var(--gold); border-color: rgba(255,210,0,.3); }
+
+    /* ── MAIN CARD ── */
+    .card {
+      background: rgba(255,255,255,.04);
+      border: 1px solid rgba(255,255,255,.09);
+      border-radius: 24px;
+      width: min(720px, 95vw);
+      padding: 2rem;
+      margin: .75rem 0;
+      backdrop-filter: blur(20px);
+      -webkit-backdrop-filter: blur(20px);
+      box-shadow: 0 8px 40px rgba(0,0,0,.35);
+    }
+
+    /* ── TABS ── */
+    .tabs {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: .6rem;
+      margin-bottom: 1.5rem;
+      background: rgba(255,255,255,.04);
+      padding: .4rem;
+      border-radius: 16px;
+      border: 1px solid rgba(255,255,255,.07);
+    }
+    .tab-btn {
+      padding: .7rem 1rem;
+      border-radius: 12px;
+      border: none;
+      background: transparent;
+      color: #888;
+      font-size: .95rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all .25s;
+      font-family: inherit;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: .45rem;
+    }
+    .tab-btn:hover { color: #ddd; }
+    .tab-btn.active {
+      background: linear-gradient(135deg, #f7971e, #ffd200);
+      color: #1a1000;
+      box-shadow: 0 4px 16px rgba(255,210,0,.25);
+    }
+
+    /* ── PANELS ── */
+    .panel { display: none; }
+    .panel.active { display: block; animation: fadeUp .3s ease; }
+    @keyframes fadeUp { from { opacity:0; transform:translateY(8px); } to { opacity:1; transform:none; } }
+
+    /* ── DROP ZONE ── */
+    .drop-zone {
+      border: 2px dashed rgba(255,255,255,.18);
+      border-radius: 18px;
+      padding: 3rem 1rem;
+      text-align: center;
+      cursor: pointer;
+      transition: all .3s;
+      background: rgba(255,255,255,.02);
+      position: relative;
+      overflow: hidden;
+    }
+    .drop-zone::after {
+      content: '';
+      position: absolute;
+      inset: 0;
+      background: radial-gradient(circle at 50% 50%, rgba(255,210,0,.06), transparent 70%);
+      opacity: 0;
+      transition: opacity .3s;
+    }
+    .drop-zone:hover, .drop-zone.dragover {
+      border-color: var(--gold);
+      background: rgba(255,210,0,.04);
+    }
+    .drop-zone:hover::after, .drop-zone.dragover::after { opacity: 1; }
+    .dz-icon {
+      font-size: 3.5rem;
+      margin-bottom: .75rem;
+      display: block;
+      filter: drop-shadow(0 0 12px rgba(255,210,0,.4));
+    }
+    .dz-text { color: #888; font-size: .9rem; line-height: 1.6; }
+    .dz-text span { color: var(--gold); cursor: pointer; }
+    #fileInput { display: none; }
+
+    /* ── PREVIEW ── */
+    .preview-box { display: none; margin-top: 1.2rem; text-align: center; }
+    .preview-box img {
+      max-width: 100%; max-height: 320px;
+      border-radius: 14px;
+      border: 2px solid rgba(255,255,255,.1);
+      object-fit: contain;
+      box-shadow: 0 8px 32px rgba(0,0,0,.4);
+      animation: fadeUp .3s ease;
+    }
+
+    /* ── CAMERA ── */
+    .camera-wrapper {
+      border-radius: 18px;
+      overflow: hidden;
+      background: #0a0a18;
+      aspect-ratio: 4/3;
+      display: flex; align-items: center; justify-content: center;
+      border: 2px solid rgba(255,255,255,.08);
+    }
+    #videoEl { width: 100%; height: 100%; object-fit: cover; display: none; }
+    .cam-placeholder { color: #444; text-align: center; }
+    .cam-placeholder span { font-size: 3.5rem; display: block; margin-bottom: .5rem; }
+    .cam-controls { display: grid; grid-template-columns: 1fr 1fr; gap: .6rem; margin-top: .8rem; }
+
+    /* ── BUTTONS ── */
+    .btn {
+      display: flex; align-items: center; justify-content: center; gap: .5rem;
+      width: 100%; margin-top: 1rem;
+      padding: .9rem 1.5rem;
+      border-radius: 14px; border: none;
+      font-size: 1rem; font-weight: 700;
+      font-family: inherit;
+      cursor: pointer;
+      transition: all .22s;
+      letter-spacing: .3px;
+    }
+    .btn-primary {
+      background: linear-gradient(135deg, #f7971e, #ffd200);
+      color: #1a1000;
+      box-shadow: 0 4px 20px rgba(255,170,0,.2);
+    }
+    .btn-primary:hover:not(:disabled) {
+      transform: translateY(-2px);
+      box-shadow: 0 8px 28px rgba(255,210,0,.35);
+    }
+    .btn-primary:disabled { opacity: .35; cursor: not-allowed; }
+    .btn-secondary {
+      background: rgba(255,255,255,.06);
+      color: #bbb;
+      border: 1.5px solid rgba(255,255,255,.12);
+      margin-top: 0;
+    }
+    .btn-secondary:hover { background: rgba(255,255,255,.11); color: #fff; }
+
+    /* ── LOADING ── */
+    #loadingBox { display: none; text-align: center; padding: 2.5rem; }
+    .loader {
+      width: 64px; height: 64px;
+      margin: 0 auto 1rem;
+      position: relative;
+    }
+    .loader::before, .loader::after {
+      content: '';
+      position: absolute;
+      border-radius: 50%;
+    }
+    .loader::before {
+      inset: 0;
+      border: 4px solid rgba(255,255,255,.08);
+      border-top-color: var(--gold);
+      animation: spin .9s linear infinite;
+    }
+    .loader::after {
+      inset: 10px;
+      border: 4px solid rgba(255,255,255,.05);
+      border-bottom-color: var(--orange);
+      animation: spin 1.4s linear infinite reverse;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+    .loading-text { color: #777; font-size: .95rem; }
+    .loading-text strong { color: var(--gold); }
+
+    /* ── RESULT ── */
+    #resultBox { display: none; }
+
+    .verdict-banner {
+      border-radius: 18px;
+      padding: 1.75rem 1.5rem;
+      text-align: center;
+      margin-bottom: 1.25rem;
+      position: relative;
+      overflow: hidden;
+    }
+    .verdict-banner::before {
+      content: '';
+      position: absolute;
+      inset: 0;
+      opacity: .08;
+      background: radial-gradient(circle at 50% 0%, white, transparent 70%);
+    }
+    .verdict-dog  { background: linear-gradient(135deg,rgba(255,107,53,.22),rgba(255,107,53,.08)); border: 1.5px solid rgba(255,107,53,.5); }
+    .verdict-cat  { background: linear-gradient(135deg,rgba(168,85,247,.22),rgba(168,85,247,.08)); border: 1.5px solid rgba(168,85,247,.5); }
+    .verdict-both { background: linear-gradient(135deg,rgba(34,197,94,.22),rgba(34,197,94,.08));  border: 1.5px solid rgba(34,197,94,.5); }
+    .verdict-none { background: linear-gradient(135deg,rgba(100,116,139,.22),rgba(100,116,139,.08)); border: 1.5px solid rgba(100,116,139,.4); }
+
+    .verdict-emoji { font-size: 3.5rem; display: block; margin-bottom: .5rem; filter: drop-shadow(0 0 16px rgba(255,255,255,.25)); }
+    .verdict-title { font-size: 1.7rem; font-weight: 800; }
+    .verdict-sub   { font-size: 1rem; font-weight: 400; color: rgba(255,255,255,.6); margin-top: .25rem; }
+
+    .conf-bar-wrap { margin-bottom: 1.25rem; }
+    .conf-row {
+      display: flex; align-items: center; gap: .75rem;
+      margin-bottom: .5rem; font-size: .88rem;
+    }
+    .conf-label { width: 60px; color: #aaa; flex-shrink: 0; }
+    .conf-track { flex: 1; height: 8px; background: rgba(255,255,255,.08); border-radius: 99px; overflow: hidden; }
+    .conf-fill  { height: 100%; border-radius: 99px; transition: width 1s cubic-bezier(.4,0,.2,1); }
+    .fill-dog  { background: linear-gradient(90deg, #ff6b35, #ff9a5c); }
+    .fill-cat  { background: linear-gradient(90deg, #a855f7, #c084fc); }
+    .conf-pct  { width: 42px; text-align: right; color: var(--gold); font-weight: 600; font-size: .85rem; }
+
+    .result-img-wrap { text-align: center; margin-bottom: 1.25rem; }
+    .result-img-wrap img {
+      max-width: 100%; max-height: 340px;
+      border-radius: 16px;
+      border: 2px solid rgba(255,255,255,.1);
+      object-fit: contain;
+      box-shadow: 0 12px 48px rgba(0,0,0,.5);
+      animation: fadeUp .4s ease;
+    }
+
+    .section-label {
+      font-size: .75rem;
+      text-transform: uppercase;
+      letter-spacing: 1.5px;
+      color: #555;
+      margin-bottom: .6rem;
+    }
+    .chips { display: flex; flex-wrap: wrap; gap: .4rem; }
+    .chip {
+      background: rgba(255,255,255,.06);
+      border: 1px solid rgba(255,255,255,.12);
+      border-radius: 99px;
+      padding: .3rem 1rem;
+      font-size: .82rem;
+      color: #ddd;
+    }
+    .chip b { color: var(--gold); }
+
+    /* ── STATS ROW ── */
+    .stats-row {
+      display: grid;
+      grid-template-columns: repeat(3,1fr);
+      gap: .6rem;
+      margin-top: 1.25rem;
+    }
+    .stat-box {
+      background: rgba(255,255,255,.04);
+      border: 1px solid rgba(255,255,255,.08);
+      border-radius: 14px;
+      padding: .85rem .5rem;
+      text-align: center;
+    }
+    .stat-val { font-size: 1.4rem; font-weight: 700; color: var(--gold); }
+    .stat-lbl { font-size: .72rem; color: #666; margin-top: .2rem; letter-spacing: .5px; }
+
+    /* ── FOOTER ── */
+    footer {
+      text-align: center;
+      padding: 2rem 1rem;
+      color: #333;
+      font-size: .78rem;
+      line-height: 1.8;
+    }
+    footer span { color: #555; }
+  </style>
+</head>
+<body>
+
+<!-- HEADER -->
+<header>
+  <div class="logo-row">
+    <div class="logo-icon">🐾</div>
+    <h1>DoggyCatScaner</h1>
+  </div>
+  <div class="badge-row">
+    <span class="badge highlight">YOLO11</span>
+    <span class="badge">mAP50 94.1%</span>
+    <span class="badge">Object Detection</span>
+  </div>
+</header>
+
+<!-- MAIN CARD -->
+<div class="card">
+  <div class="tabs">
+    <button class="tab-btn active" onclick="switchTab('upload')">
+      <span>🖼️</span> เลือกรูปภาพ
+    </button>
+    <button class="tab-btn" onclick="switchTab('camera')">
+      <span>📷</span> เปิดกล้อง
+    </button>
+  </div>
+
+  <!-- UPLOAD -->
+  <div id="uploadPanel" class="panel active">
+    <div class="drop-zone" id="dropZone" onclick="document.getElementById('fileInput').click()">
+      <span class="dz-icon">🐾</span>
+      <div class="dz-text">
+        ลากรูปมาวางที่นี่ หรือ <span>คลิกเพื่อเลือกไฟล์</span><br>
+        <small style="color:#555">รองรับ JPG · PNG · WEBP</small>
+      </div>
+    </div>
+    <input type="file" id="fileInput" accept="image/*" onchange="onFileSelect(event)" />
+    <div class="preview-box" id="uploadPreview">
+      <img id="uploadPreviewImg" src="" alt="preview" />
+    </div>
+    <button class="btn btn-primary" id="analyzeUploadBtn" onclick="analyzeUpload()" disabled>
+      🔍 วิเคราะห์ภาพนี้
+    </button>
+  </div>
+
+  <!-- CAMERA -->
+  <div id="cameraPanel" class="panel">
+    <div class="camera-wrapper">
+      <video id="videoEl" autoplay playsinline></video>
+      <div class="cam-placeholder" id="camPlaceholder">
+        <span>📷</span>
+        <p>กดปุ่มด้านล่างเพื่อเปิดกล้อง</p>
+      </div>
+    </div>
+    <div class="cam-controls">
+      <button class="btn btn-secondary" id="startCamBtn" onclick="startCamera()">📷 เปิดกล้อง</button>
+      <button class="btn btn-primary" id="captureBtn" onclick="captureFrame()" disabled style="margin-top:0">📸 ถ่ายและวิเคราะห์</button>
+    </div>
+    <div class="preview-box" id="cameraPreview">
+      <img id="cameraPreviewImg" src="" alt="captured" />
+    </div>
+  </div>
+</div>
+
+<!-- LOADING -->
+<div class="card" id="loadingBox">
+  <div class="loader"></div>
+  <div class="loading-text">กำลังวิเคราะห์ด้วย <strong>YOLO11</strong>...</div>
+</div>
+
+<!-- RESULT -->
+<div class="card" id="resultBox">
+  <div class="verdict-banner" id="verdictBanner"></div>
+
+  <div class="result-img-wrap" id="resultImgWrap"></div>
+
+  <div id="confBars" class="conf-bar-wrap"></div>
+
+  <div class="section-label">Detections</div>
+  <div class="chips" id="detectionChips"></div>
+
+  <div class="stats-row" id="statsRow"></div>
+
+  <button class="btn btn-secondary" onclick="resetUI()" style="margin-top:1.25rem">
+    🔄 วิเคราะห์รูปใหม่
+  </button>
+</div>
+
+<footer>
+  <span>DoggyCatScaner</span> · Senior Project Year 3 🎓<br>
+  Powered by YOLO11 &amp; Flask · Accuracy 94.1%
+</footer>
+
+<script>
+  let currentTab = "upload", cameraStream = null, uploadBase64 = null;
+
+  /* ── TAB ── */
+  function switchTab(tab) {
+    currentTab = tab;
+    document.querySelectorAll(".tab-btn").forEach((b,i) => {
+      b.classList.toggle("active", (i===0&&tab==="upload")||(i===1&&tab==="camera"));
+    });
+    document.getElementById("uploadPanel").classList.toggle("active", tab==="upload");
+    document.getElementById("cameraPanel").classList.toggle("active", tab==="camera");
+    if (tab!=="camera") stopCamera();
+    resetUI(false);
+  }
+
+  /* ── UPLOAD ── */
+  const dz = document.getElementById("dropZone");
+  dz.addEventListener("dragover", e => { e.preventDefault(); dz.classList.add("dragover"); });
+  dz.addEventListener("dragleave", () => dz.classList.remove("dragover"));
+  dz.addEventListener("drop", e => {
+    e.preventDefault(); dz.classList.remove("dragover");
+    const f = e.dataTransfer.files[0];
+    if (f && f.type.startsWith("image/")) loadFile(f);
+  });
+  function onFileSelect(e) { if (e.target.files[0]) loadFile(e.target.files[0]); }
+  function loadFile(file) {
+    const r = new FileReader();
+    r.onload = ev => {
+      uploadBase64 = ev.target.result;
+      document.getElementById("uploadPreviewImg").src = uploadBase64;
+      document.getElementById("uploadPreview").style.display = "block";
+      document.getElementById("analyzeUploadBtn").disabled = false;
+    };
+    r.readAsDataURL(file);
+  }
+  async function analyzeUpload() { if (uploadBase64) await runAnalysis(uploadBase64); }
+
+  /* ── CAMERA ── */
+  async function startCamera() {
+    try {
+      cameraStream = await navigator.mediaDevices.getUserMedia({ video: { facingMode:"environment" } });
+      const v = document.getElementById("videoEl");
+      v.srcObject = cameraStream; v.style.display = "block";
+      document.getElementById("camPlaceholder").style.display = "none";
+      document.getElementById("captureBtn").disabled = false;
+      const btn = document.getElementById("startCamBtn");
+      btn.textContent = "🔴 ปิดกล้อง"; btn.onclick = stopCamera;
+    } catch(e) { alert("เปิดกล้องไม่ได้: "+e.message); }
+  }
+  function stopCamera() {
+    if (cameraStream) { cameraStream.getTracks().forEach(t=>t.stop()); cameraStream=null; }
+    const v = document.getElementById("videoEl");
+    v.style.display="none"; v.srcObject=null;
+    document.getElementById("camPlaceholder").style.display="flex";
+    document.getElementById("captureBtn").disabled=true;
+    const btn = document.getElementById("startCamBtn");
+    btn.textContent="📷 เปิดกล้อง"; btn.onclick=startCamera;
+  }
+  async function captureFrame() {
+    const v = document.getElementById("videoEl");
+    const c = document.createElement("canvas");
+    c.width=v.videoWidth; c.height=v.videoHeight;
+    c.getContext("2d").drawImage(v,0,0);
+    const url = c.toDataURL("image/jpeg",.92);
+    document.getElementById("cameraPreviewImg").src = url;
+    document.getElementById("cameraPreview").style.display = "block";
+    await runAnalysis(url);
+  }
+
+  /* ── ANALYSIS ── */
+  async function runAnalysis(b64) {
+    document.getElementById("loadingBox").style.display = "block";
+    document.getElementById("resultBox").style.display = "none";
+    try {
+      const res = await fetch("/analyze", {
+        method:"POST",
+        headers:{"Content-Type":"application/json"},
+        body: JSON.stringify({image:b64})
+      });
+      const data = await res.json();
+      if (data.error) throw new Error(data.error);
+      showResult(data);
+    } catch(e) {
+      alert("เกิดข้อผิดพลาด: "+e.message);
+    } finally {
+      document.getElementById("loadingBox").style.display = "none";
+    }
+  }
+
+  const EMOJI = { dog:"🐕", cat:"🐈", both:"🐕🐈", none:"❓" };
+  const VERDICT_EN = { dog:"It's a Dog!", cat:"It's a Cat!", both:"Both Dog & Cat!", none:"Not a Dog or Cat" };
+
+  function showResult(data) {
+    /* banner */
+    const banner = document.getElementById("verdictBanner");
+    banner.className = "verdict-banner verdict-"+data.verdict;
+    banner.innerHTML = `
+      <span class="verdict-emoji">${EMOJI[data.verdict]||"❓"}</span>
+      <div class="verdict-title">${data.verdict_th}</div>
+      <div class="verdict-sub">${VERDICT_EN[data.verdict]||""}</div>`;
+
+    /* result image */
+    document.getElementById("resultImgWrap").innerHTML =
+      `<img src="data:image/jpeg;base64,${data.annotated_image}" alt="result"/>`;
+
+    /* confidence bars */
+    const dogBoxes = data.boxes.filter(b=>b.label.toLowerCase().includes("dog"));
+    const catBoxes = data.boxes.filter(b=>b.label.toLowerCase().includes("cat"));
+    const dogConf  = dogBoxes.length ? Math.max(...dogBoxes.map(b=>b.confidence)) : 0;
+    const catConf  = catBoxes.length ? Math.max(...catBoxes.map(b=>b.confidence)) : 0;
+    document.getElementById("confBars").innerHTML = `
+      <div class="conf-row">
+        <span class="conf-label">🐕 Dog</span>
+        <div class="conf-track"><div class="conf-fill fill-dog" id="fillDog" style="width:0%"></div></div>
+        <span class="conf-pct">${dogConf.toFixed(1)}%</span>
+      </div>
+      <div class="conf-row">
+        <span class="conf-label">🐈 Cat</span>
+        <div class="conf-track"><div class="conf-fill fill-cat" id="fillCat" style="width:0%"></div></div>
+        <span class="conf-pct">${catConf.toFixed(1)}%</span>
+      </div>`;
+    setTimeout(() => {
+      document.getElementById("fillDog").style.width = dogConf+"%";
+      document.getElementById("fillCat").style.width = catConf+"%";
+    }, 80);
+
+    /* chips */
+    const chips = document.getElementById("detectionChips");
+    chips.innerHTML = data.boxes.length === 0
+      ? `<span class="chip">ไม่พบ object</span>`
+      : data.boxes.map(b=>`<span class="chip">${b.label} <b>${b.confidence}%</b></span>`).join("");
+
+    /* stats */
+    const topConf = data.boxes.length ? Math.max(...data.boxes.map(b=>b.confidence)) : 0;
+    document.getElementById("statsRow").innerHTML = `
+      <div class="stat-box"><div class="stat-val">${data.boxes.length}</div><div class="stat-lbl">OBJECTS</div></div>
+      <div class="stat-box"><div class="stat-val">${topConf.toFixed(0)}%</div><div class="stat-lbl">CONFIDENCE</div></div>
+      <div class="stat-box"><div class="stat-val">v11</div><div class="stat-lbl">YOLO</div></div>`;
+
+    document.getElementById("resultBox").style.display = "block";
+    document.getElementById("resultBox").scrollIntoView({ behavior:"smooth", block:"start" });
+  }
+
+  /* ── RESET ── */
+  function resetUI(clearPreview=true) {
+    document.getElementById("resultBox").style.display="none";
+    document.getElementById("loadingBox").style.display="none";
+    if (clearPreview) {
+      uploadBase64=null;
+      document.getElementById("uploadPreview").style.display="none";
+      document.getElementById("analyzeUploadBtn").disabled=true;
+      document.getElementById("cameraPreview").style.display="none";
+      document.getElementById("fileInput").value="";
+      window.scrollTo({top:0,behavior:"smooth"});
+    }
+  }
+</script>
+</body>
+</html>

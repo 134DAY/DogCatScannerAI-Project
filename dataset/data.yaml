@@ -1,0 +1,6 @@
+train: C:/Users/User/Desktop/DoggyCatScaner/dataset/train/images
+val: C:/Users/User/Desktop/DoggyCatScaner/dataset/valid/images
+test: C:/Users/User/Desktop/DoggyCatScaner/dataset/test/images
+
+nc: 2
+names: ['cat', 'dog']
